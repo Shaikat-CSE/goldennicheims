@@ -1,4 +1,4 @@
-// suppliers.js - Supplier management functionality for Golden Niche IMS
+// suppliers.js - Supplier management functionality for QBITX IMS Transform Suppliers
 
 document.addEventListener('DOMContentLoaded', async function() {
     // Check authentication
@@ -282,8 +282,10 @@ async function loadSupplierProducts(supplierId) {
             row.innerHTML = `
                 <td>${product.name}</td>
                 <td>${product.sku}</td>
+                <td>${product.type}</td>
                 <td>${product.quantity}</td>
-                <td>${formatCurrency(product.price)}</td>
+                <td>${formatCurrency(product.buying_price)}</td>
+                <td>${product.location || '-'}</td>
             `;
             tableBody.appendChild(row);
         });

@@ -7,7 +7,10 @@ class Product(models.Model):
     sku = models.CharField(max_length=50, unique=True)
     type = models.CharField(max_length=100)
     quantity = models.IntegerField(default=0)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    buying_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    selling_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # Legacy price field for backwards compatibility
+    price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     # Track product details
     location = models.CharField(max_length=100, blank=True, null=True)
     expiry_date = models.DateField(blank=True, null=True)
@@ -15,11 +18,19 @@ class Product(models.Model):
     barcode = models.CharField(max_length=100, blank=True, null=True)
     minimum_stock_level = models.IntegerField(default=5)
     unit_of_measure = models.CharField(max_length=50, default='Unit', blank=True)
+    wastage = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
         return self.name
+    
+    def save(self, *args, **kwargs):
+        # If price is not set but buying_price and selling_price are,
+        # calculate average price for backward compatibility
+        if self.price is None and self.buying_price is not None and self.selling_price is not None:
+            self.price = (self.buying_price + self.selling_price) / 2
+        super().save(*args, **kwargs)
 
 class Supplier(models.Model):
     name = models.CharField(max_length=255)
@@ -93,7 +104,7 @@ class StockTransaction(models.Model):
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0, blank=True)
     date = models.DateTimeField(auto_now_add=True)
     is_wastage = models.BooleanField(default=False)
-    
+    wastage = models.DecimalField(max_digits=10, decimal_places=2, default=0, blank=True)
     # Add relationships to Supplier and Client models
     supplier_ref = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
     client_ref = models.ForeignKey(Client, on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
@@ -101,5 +112,19 @@ class StockTransaction(models.Model):
     def __str__(self):
         return f"{self.type} - {self.product.name} - {self.quantity} units"
     
+    def save(self, *args, **kwargs):
+        # If unit_price is not set, use the appropriate price from the product based on transaction type
+        if self.unit_price is None and self.product:
+            if self.type == 'IN':
+                self.unit_price = self.product.buying_price
+            elif self.type == 'OUT':
+                self.unit_price = self.product.selling_price
+        super().save(*args, **kwargs)
+    
     class Meta:
         ordering = ['-date']
+        permissions = (
+            ('view_reports', 'Can view reports'),
+            ('export_reports', 'Can export reports to CSV/PDF'),
+            ('print_reports', 'Can print reports'),
+        )

@@ -12,4 +12,6 @@ router.register(r'clients', views.ClientViewSet)
 urlpatterns = [
     path('', include(router.urls)),
     path('stock/update/', views.StockUpdateView.as_view(), name='stock-update'),
+    path('user-permissions/', views.UserPermissionsView.as_view(), name='user-permissions'),
+    path('reports/', views.ReportsView.as_view(), name='reports'),
 ] 

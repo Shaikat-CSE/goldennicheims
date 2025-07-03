@@ -1,4 +1,4 @@
-// invoice.js - Invoice generation functionality for Golden Niche IMS
+// invoice.js - Invoice generation functionality for QBITX IMS Transform Suppliers
 
 document.addEventListener('DOMContentLoaded', async function() {
     // Check authentication
@@ -186,6 +186,16 @@ async function loadTransactionData(transactionId) {
 
 // Validate transaction data and ensure all required fields are present
 function validateTransactionData(transaction, product) {
+    // Determine which price to use based on transaction type
+    let price = transaction.unit_price;
+    if (!price) {
+        if (transaction.type === 'IN') {
+            price = product.buying_price || product.price || 0;
+        } else {
+            price = product.selling_price || product.price || 0;
+        }
+    }
+    
     const validatedTransaction = {
         ...transaction,
         id: transaction.id || 0,
@@ -195,7 +205,7 @@ function validateTransactionData(transaction, product) {
         notes: transaction.notes || '',
         date: transaction.date || new Date().toISOString(),
         reference_number: transaction.reference_number || '',
-        unit_price: transaction.unit_price || product.price || 0,
+        unit_price: price,
         discount: transaction.discount || 0,
         supplier: transaction.supplier || '',
         supplier_contact: transaction.supplier_contact || '',
@@ -209,7 +219,9 @@ function validateTransactionData(transaction, product) {
         product_details: {
             name: product.name || 'Unknown Product',
             sku: product.sku || 'N/A',
-            price: product.price || 0,
+            buying_price: product.buying_price || product.price || 0,
+            selling_price: product.selling_price || product.price || 0,
+            price: price, // Use the appropriate price based on transaction type
             unit_of_measure: product.unit_of_measure || 'Unit'
         }
     };

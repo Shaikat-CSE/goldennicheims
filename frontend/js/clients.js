@@ -1,4 +1,4 @@
-// clients.js - Client management functionality for Golden Niche IMS
+// clients.js - Client management functionality for QBITX IMS Transform Suppliers
 
 document.addEventListener('DOMContentLoaded', async function() {
     // Check authentication
@@ -282,8 +282,10 @@ async function loadClientProducts(clientId) {
             row.innerHTML = `
                 <td>${product.name}</td>
                 <td>${product.sku}</td>
+                <td>${product.type}</td>
                 <td>${product.quantity}</td>
-                <td>${formatCurrency(product.price)}</td>
+                <td>${formatCurrency(product.selling_price)}</td>
+                <td>${product.location || '-'}</td>
             `;
             tableBody.appendChild(row);
         });

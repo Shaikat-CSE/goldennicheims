@@ -1,4 +1,4 @@
-// products.js - Product management functionality for Golden Niche IMS
+// products.js - Product management functionality for QBITX IMS Transform Suppliers
 
 document.addEventListener('DOMContentLoaded', async function() {
     // Check authentication
@@ -106,21 +106,60 @@ async function loadProducts(filterType = '', searchQuery = '') {
                 }
             }
             
+            // Calculate profit margin
+            const buyingPrice = parseFloat(product.buying_price) || 0;
+            const sellingPrice = parseFloat(product.selling_price) || 0;
+            let profitMargin = 0;
+            let profitMarginClass = '';
+            
+            if (buyingPrice > 0 && sellingPrice > 0) {
+                profitMargin = ((sellingPrice - buyingPrice) / buyingPrice) * 100;
+                
+                // Add color coding based on margin
+                if (profitMargin < 10) {
+                    profitMarginClass = 'text-danger';
+                } else if (profitMargin < 20) {
+                    profitMarginClass = 'text-warning';
+                } else {
+                    profitMarginClass = 'text-success';
+                }
+            }
+            
+            // Create action buttons based on permissions
+            const canEditProduct = hasPermission('inventory.change_product');
+            const canDeleteProduct = hasPermission('inventory.delete_product');
+            
+            const editButton = canEditProduct 
+                ? `<a href="product-form.html?id=${product.id}" class="btn btn-sm btn-warning edit-product-btn" data-action="edit-product">
+                      <i class="fas fa-edit"></i>
+                   </a>`
+                : `<button class="btn btn-sm btn-warning disabled" disabled title="You do not have permission to edit products">
+                      <i class="fas fa-edit"></i>
+                   </button>`;
+                   
+            const deleteButton = canDeleteProduct
+                ? `<button class="btn btn-sm btn-danger delete-product" data-id="${product.id}" data-name="${product.name}" data-action="delete-product">
+                      <i class="fas fa-trash"></i>
+                   </button>`
+                : `<button class="btn btn-sm btn-danger disabled" disabled title="You do not have permission to delete products">
+                      <i class="fas fa-trash"></i>
+                   </button>`;
+            
             row.innerHTML = `
                 <td>${product.name}</td>
                 <td>${product.sku}</td>
                 <td>${product.type}</td>
                 <td>${product.quantity}</td>
-                <td>${formatCurrency(product.price)}</td>
+                <td>${product.unit_of_measure || 'Unit'}</td>
+                <td>${formatCurrency(product.buying_price)}</td>
+                <td>${formatCurrency(product.selling_price)}</td>
+                <td><span class="${profitMarginClass}">${profitMargin.toFixed(2)}%</span></td>
+                <td>${product.shipment_number || '-'}</td>
                 <td>${product.location || '-'}</td>
                 <td>${expiryDisplay}</td>
                 <td>
-                    <a href="product-form.html?id=${product.id}" class="btn btn-sm btn-warning">
-                        <i class="fas fa-edit"></i>
-                    </a>
-                    <button class="btn btn-sm btn-danger delete-product" data-id="${product.id}" data-name="${product.name}">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    ${editButton}
+                    ${deleteButton}
                 </td>
             `;
             
@@ -153,7 +192,8 @@ function setupEventListeners() {
     
     // Confirm delete
     document.getElementById('confirmDelete').addEventListener('click', async function() {
-        const productId = parseInt(this.getAttribute('data-id'));
+        const productId = this.getAttribute('data-id');
+        console.log(`Confirm delete clicked for product ID: ${productId}`);
         await deleteProductAndReload(productId);
         
         // Hide modal
@@ -164,7 +204,10 @@ function setupEventListeners() {
 
 // Attach delete button handlers
 function attachDeleteHandlers() {
-    document.querySelectorAll('.delete-product').forEach(button => {
+    // Only attach handlers if user has delete permission
+    if (!hasPermission('inventory.delete_product')) return;
+    
+    document.querySelectorAll('.delete-product:not(.disabled)').forEach(button => {
         button.addEventListener('click', function() {
             const productId = this.getAttribute('data-id');
             const productName = this.getAttribute('data-name');
@@ -185,6 +228,15 @@ function attachDeleteHandlers() {
 // Delete a product and reload the table
 async function deleteProductAndReload(productId) {
     try {
+        // Double-check permissions for security
+        if (!hasPermission('inventory.delete_product')) {
+            showNotification('You do not have permission to delete products', 'danger');
+            return;
+        }
+        
+        console.log(`Attempting to delete product with ID: ${productId}`);
+        
+        // Handle both numeric and string IDs (for both API and mock data)
         await deleteProduct(productId);
         
         // Reload products table
@@ -196,6 +248,6 @@ async function deleteProductAndReload(productId) {
         showNotification('Product deleted successfully');
     } catch (error) {
         console.error('Error deleting product:', error);
-        showNotification('Error deleting product', 'danger');
+        showNotification('Error deleting product: ' + error.message, 'danger');
     }
 } 

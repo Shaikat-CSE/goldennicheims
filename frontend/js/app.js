@@ -1,4 +1,4 @@
-// app.js - Common functionality for Golden Niche IMS with Django backend
+// app.js - Common functionality for QBITX IMS Transform Suppliers with Django backend
 
 document.addEventListener('DOMContentLoaded', function() {
     // Set up the sidebar active link based on current page
@@ -46,7 +46,7 @@ function showNotification(message, type = 'success') {
     
     toast.innerHTML = `
         <div class="toast-header bg-${type} text-white">
-            <strong class="me-auto">Golden Niche IMS</strong>
+            <strong class="me-auto">QBITX IMS Transform Suppliers</strong>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
         <div class="toast-body">
@@ -65,21 +65,136 @@ function showNotification(message, type = 'success') {
 // API helper functions
 async function fetchAPI(endpoint, options = {}) {
     try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            ...options
-        });
+        // Build the full URL
+        const baseUrl = API_CONFIG.BASE_URL.startsWith('http') 
+            ? API_CONFIG.BASE_URL 
+            : window.location.origin + API_CONFIG.BASE_URL;
         
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'API request failed');
+        const url = `${baseUrl}${endpoint}`;
+        console.log(`API Request: ${url}`, options);
+        
+        // Get auth token from localStorage - check both possible token names
+        const authToken = localStorage.getItem('auth_token') || localStorage.getItem('authToken');
+        
+        // Create headers with authentication if token exists
+        let headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        if (authToken) {
+            headers['Authorization'] = `Token ${authToken}`;
         }
         
-        return await response.json();
+        // Merge provided options with headers
+        const finalOptions = {
+            ...options,
+            headers: {
+                ...headers,
+                ...(options.headers || {})
+            }
+        };
+        
+        const response = await fetch(url, finalOptions);
+        
+        // Handle unauthorized responses
+        if (response.status === 401) {
+            console.error('Authentication failed. Redirecting to login page.');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('isAuthenticated');
+            localStorage.removeItem('currentUser');
+            window.location.href = 'login.html';
+            return null;
+        }
+        
+        if (!response.ok) {
+            console.error(`API Error: ${response.status} ${response.statusText} for ${endpoint}`);
+            
+            // Try to get error details from response
+            let errorMessage = `${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                if (errorData.error) {
+                    errorMessage = errorData.error;
+                } else if (errorData.detail) {
+                    errorMessage = errorData.detail;
+                }
+                console.error('API error details:', errorData);
+            } catch (e) {
+                console.error('Could not parse error response:', e);
+            }
+            
+            // If API fails, check if we have mock data available
+            if (window.MOCK_PRODUCTS && endpoint.includes('/products')) {
+                console.log('Falling back to mock data for products');
+                if (options.method === 'DELETE') {
+                    return { success: true };
+                }
+                return [...window.MOCK_PRODUCTS];
+            }
+            
+            if (window.MOCK_STOCK_HISTORY && endpoint.includes('/stock-history')) {
+                console.log('Falling back to mock data for stock history');
+                return [...window.MOCK_STOCK_HISTORY];
+            }
+            
+            if (window.MOCK_SUPPLIERS && endpoint.includes('/suppliers')) {
+                console.log('Falling back to mock data for suppliers');
+                return [...window.MOCK_SUPPLIERS];
+            }
+            
+            if (window.MOCK_CLIENTS && endpoint.includes('/clients')) {
+                console.log('Falling back to mock data for clients');
+                return [...window.MOCK_CLIENTS];
+            }
+            
+            if (window.MOCK_INVENTORY_STATS && endpoint.includes('/stats')) {
+                console.log('Falling back to mock data for inventory stats');
+                return {...window.MOCK_INVENTORY_STATS};
+            }
+            
+            throw new Error(errorMessage || 'API request failed');
+        }
+        
+        // For DELETE requests, we might not have a response body
+        if (options.method === 'DELETE') {
+            return { success: true };
+        }
+        
+        const data = await response.json();
+        console.log(`API Response for ${endpoint}: ${Array.isArray(data) ? data.length + ' items' : 'object'}`);
+        return data;
     } catch (error) {
         console.error('API error:', error);
+        
+        // Try to use mock data as fallback if available
+        if (window.MOCK_PRODUCTS && endpoint.includes('/products')) {
+            console.log('Error occurred, using mock data for products');
+            if (options.method === 'DELETE') {
+                return { success: true };
+            }
+            return [...window.MOCK_PRODUCTS];
+        }
+        
+        if (window.MOCK_STOCK_HISTORY && endpoint.includes('/stock-history')) {
+            console.log('Error occurred, using mock data for stock history');
+            return [...window.MOCK_STOCK_HISTORY];
+        }
+        
+        if (window.MOCK_SUPPLIERS && endpoint.includes('/suppliers')) {
+            console.log('Error occurred, using mock data for suppliers');
+            return [...window.MOCK_SUPPLIERS];
+        }
+        
+        if (window.MOCK_CLIENTS && endpoint.includes('/clients')) {
+            console.log('Error occurred, using mock data for clients');
+            return [...window.MOCK_CLIENTS];
+        }
+        
+        if (window.MOCK_INVENTORY_STATS && endpoint.includes('/stats')) {
+            console.log('Error occurred, using mock data for inventory stats');
+            return {...window.MOCK_INVENTORY_STATS};
+        }
+        
         showNotification(error.message, 'danger');
         throw error;
     }
@@ -109,7 +224,8 @@ async function createProduct(productData) {
 }
 
 // Helper function to update a product
-async function updateProduct(id, productData) {
+async function updateProduct(productData) {
+    const id = productData.id;
     return await fetchAPI(`${API_CONFIG.ENDPOINTS.PRODUCTS}${id}/`, {
         method: 'PUT',
         body: JSON.stringify(productData)
@@ -125,7 +241,20 @@ async function deleteProduct(id) {
 
 // Helper function to get stock history
 async function getStockHistory() {
-    return await fetchAPI(API_CONFIG.ENDPOINTS.STOCK_HISTORY);
+    console.log('Getting stock history with token:', localStorage.getItem('auth_token') || localStorage.getItem('authToken'));
+    try {
+        const data = await fetchAPI(API_CONFIG.ENDPOINTS.STOCK_HISTORY);
+        console.log('Stock history data fetched successfully:', data ? `${data.length} items` : 'No data');
+        return data;
+    } catch (error) {
+        console.error('Error fetching stock history:', error);
+        // Fall back to mock data if available
+        if (window.MOCK_STOCK_HISTORY) {
+            console.log('Using mock stock history data instead');
+            return [...window.MOCK_STOCK_HISTORY];
+        }
+        throw error;
+    }
 }
 
 // Helper function to update stock levels
@@ -141,37 +270,27 @@ async function updateStock(productId, quantity, type, notes = '') {
     });
 }
 
-// Helper function to get low stock products
-async function getLowStockProducts(threshold = 5) {
-    return await fetchAPI(`${API_CONFIG.ENDPOINTS.LOW_STOCK}?threshold=${threshold}`);
-}
-
 // Helper function to get inventory stats
 async function getInventoryStats() {
     return await fetchAPI(API_CONFIG.ENDPOINTS.STATS);
 }
 
+// Helper function to get wastage stats
+async function getWastageStats() {
+    return await fetchAPI(API_CONFIG.ENDPOINTS.WASTAGE_STATS);
+}
+
+// Helper function to get low stock products
+async function getLowStockProducts(threshold = 5) {
+    return await fetchAPI(`${API_CONFIG.ENDPOINTS.LOW_STOCK}?threshold=${threshold}`);
+}
+
 // Update stock with detailed information
 async function updateStockWithDetails(transactionData) {
-    try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/stock/update/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Token ${getAuthToken()}`
-            },
-            body: JSON.stringify(transactionData)
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-        }
-        
-        return await response.json();
-    } catch (error) {
-        console.error('API Error:', error);
-        throw error;
-    }
+    return await fetchAPI('/stock/update/', {
+        method: 'POST',
+        body: JSON.stringify(transactionData)
+    });
 }
 
 // Helper functions for suppliers

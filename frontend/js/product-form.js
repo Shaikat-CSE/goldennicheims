@@ -1,4 +1,4 @@
-// product-form.js - Product form functionality for Golden Niche IMS
+// product-form.js - Product form functionality for QBITX IMS Transform Suppliers
 
 document.addEventListener('DOMContentLoaded', async function() {
     // Check authentication
@@ -174,7 +174,24 @@ async function fillProductForm(productId) {
         document.getElementById('productSKU').value = product.sku;
         document.getElementById('productType').value = product.type;
         document.getElementById('productQuantity').value = product.quantity;
-        document.getElementById('productPrice').value = product.price;
+        
+        // Set UOM
+        if (product.unit_of_measure) {
+            document.getElementById('productUOM').value = product.unit_of_measure;
+        }
+        
+        // Set buying and selling prices
+        document.getElementById('productBuyingPrice').value = product.buying_price || product.price;
+        document.getElementById('productSellingPrice').value = product.selling_price || product.price;
+        
+        // Set wastage if available and the field exists
+        const productWastageElement = document.getElementById('productWastage');
+        if (product.wastage !== undefined && productWastageElement) {
+            productWastageElement.value = product.wastage;
+        }
+        
+        // Calculate and display profit margin
+        calculateProfitMargin();
         
         // Set tracking information
         document.getElementById('productLocation').value = product.location || '';
@@ -212,45 +229,85 @@ function setupEventListeners() {
         });
     }
     
+    // Add event listeners for price fields to calculate profit margin
+    document.getElementById('productBuyingPrice').addEventListener('input', calculateProfitMargin);
+    document.getElementById('productSellingPrice').addEventListener('input', calculateProfitMargin);
+    
     // Form submission
     document.getElementById('productForm').addEventListener('submit', saveProductForm);
+}
+
+// Calculate profit margin based on buying and selling prices
+function calculateProfitMargin() {
+    const buyingPrice = parseFloat(document.getElementById('productBuyingPrice').value) || 0;
+    const sellingPrice = parseFloat(document.getElementById('productSellingPrice').value) || 0;
+    
+    if (buyingPrice > 0 && sellingPrice > 0) {
+        const profit = sellingPrice - buyingPrice;
+        const marginPercentage = (profit / buyingPrice) * 100;
+        document.getElementById('profitMargin').value = marginPercentage.toFixed(2);
+        
+        // Add visual feedback based on margin value
+        const profitMarginInput = document.getElementById('profitMargin');
+        if (marginPercentage < 10) {
+            profitMarginInput.className = 'form-control bg-danger text-white';
+        } else if (marginPercentage < 20) {
+            profitMarginInput.className = 'form-control bg-warning';
+        } else {
+            profitMarginInput.className = 'form-control bg-success text-white';
+        }
+    } else {
+        document.getElementById('profitMargin').value = '0.00';
+        document.getElementById('profitMargin').className = 'form-control';
+    }
 }
 
 // Save product form
 async function saveProductForm(event) {
     event.preventDefault();
     
-    // Get form values
+    // Validate form
     const form = document.getElementById('productForm');
-    
-    // Check form validation
     if (!form.checkValidity()) {
         event.stopPropagation();
         form.classList.add('was-validated');
         return;
     }
     
-    // Get product data from form
+    // Get form values
     const productId = document.getElementById('productId').value;
+    const name = document.getElementById('productName').value;
+    const sku = document.getElementById('productSKU').value;
+    const type = document.getElementById('productType').value;
+    const quantity = parseInt(document.getElementById('productQuantity').value) || 0;
+    const buyingPrice = parseFloat(document.getElementById('productBuyingPrice').value) || 0;
+    const sellingPrice = parseFloat(document.getElementById('productSellingPrice').value) || 0;
+    const location = document.getElementById('productLocation').value;
+    const barcode = document.getElementById('productBarcode').value;
+    const batchNumber = document.getElementById('productBatchNumber').value;
+    const expiryDate = document.getElementById('productExpiryDate').value;
+    const minStockLevel = parseInt(document.getElementById('productMinStockLevel').value) || 5;
+    const unitOfMeasure = document.getElementById('productUOM').value;
     
-    // Get expiry date from flatpickr
-    let expiryDate = null;
-    const datePicker = document.getElementById('productExpiryDate')._flatpickr;
-    if (datePicker.selectedDates.length > 0) {
-        expiryDate = datePicker.selectedDates[0].toISOString().split('T')[0];
-    }
+    // Safely get wastage value if the element exists
+    const wastageElement = document.getElementById('productWastage');
+    const wastage = wastageElement ? (parseFloat(wastageElement.value) || 0) : 0;
     
+    // Create product object
     const productData = {
-        name: document.getElementById('productName').value,
-        sku: document.getElementById('productSKU').value,
-        type: document.getElementById('productType').value,
-        quantity: parseInt(document.getElementById('productQuantity').value),
-        price: parseFloat(document.getElementById('productPrice').value),
-        location: document.getElementById('productLocation').value,
-        barcode: document.getElementById('productBarcode').value,
-        batch_number: document.getElementById('productBatchNumber').value,
-        expiry_date: expiryDate,
-        minimum_stock_level: parseInt(document.getElementById('productMinStockLevel').value)
+        name,
+        sku,
+        type,
+        quantity,
+        buying_price: buyingPrice,
+        selling_price: sellingPrice,
+        location,
+        barcode,
+        shipment_number: batchNumber,
+        expiry_date: expiryDate || null,
+        minimum_stock_level: minStockLevel,
+        unit_of_measure: unitOfMeasure,
+        wastage
     };
     
     try {
@@ -258,13 +315,16 @@ async function saveProductForm(event) {
         
         if (productId) {
             // Update existing product
-            result = await updateProduct(productId, productData);
-            showNotification('Product updated successfully');
+            productData.id = parseInt(productId);
+            result = await updateProduct(productData);
+            showNotification('Product updated successfully', 'success');
         } else {
             // Create new product
             result = await createProduct(productData);
-            showNotification('Product created successfully');
+            showNotification('Product created successfully', 'success');
         }
+        
+        console.log('Product saved:', result);
         
         // Redirect to products page
         setTimeout(() => {
@@ -272,6 +332,6 @@ async function saveProductForm(event) {
         }, 1000);
     } catch (error) {
         console.error('Error saving product:', error);
-        showNotification('Error saving product', 'danger');
+        showNotification('Error saving product. Please try again.', 'danger');
     }
 } 

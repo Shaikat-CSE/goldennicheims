@@ -1,14 +1,15 @@
-// mock-data.js - Mock data for Golden Niche IMS when API is not available
+// mock-data.js - Mock data for QBITX IMS Transform Suppliers when API is not available
 
 // Mock products data
-const MOCK_PRODUCTS = [
+window.MOCK_PRODUCTS = [
     {
         id: 'p1',
         name: 'Smartphone X',
         sku: 'SP-001',
         description: 'Latest smartphone model with advanced features',
-        price: 45000,
-        cost: 38000,
+        buying_price: 38000,
+        selling_price: 45000,
+        price: 41500, // Average for backward compatibility
         quantity: 25,
         type: 'Electronics',
         min_stock: 5,
@@ -19,8 +20,9 @@ const MOCK_PRODUCTS = [
         name: 'Laptop Pro',
         sku: 'LP-002',
         description: 'High-performance laptop for professionals',
-        price: 85000,
-        cost: 70000,
+        buying_price: 70000,
+        selling_price: 85000,
+        price: 77500, // Average for backward compatibility
         quantity: 12,
         type: 'Electronics',
         min_stock: 3,
@@ -31,8 +33,9 @@ const MOCK_PRODUCTS = [
         name: 'Office Desk',
         sku: 'FN-003',
         description: 'Ergonomic office desk',
-        price: 12000,
-        cost: 8500,
+        buying_price: 8500,
+        selling_price: 12000,
+        price: 10250, // Average for backward compatibility
         quantity: 8,
         type: 'Furniture',
         min_stock: 2,
@@ -43,8 +46,9 @@ const MOCK_PRODUCTS = [
         name: 'Premium Coffee',
         sku: 'GR-004',
         description: 'Premium coffee beans',
-        price: 850,
-        cost: 550,
+        buying_price: 550,
+        selling_price: 850,
+        price: 700, // Average for backward compatibility
         quantity: 50,
         type: 'Grocery',
         min_stock: 10,
@@ -55,8 +59,9 @@ const MOCK_PRODUCTS = [
         name: 'Wireless Headphones',
         sku: 'SP-005',
         description: 'Noise-cancelling wireless headphones',
-        price: 3500,
-        cost: 2200,
+        buying_price: 2200,
+        selling_price: 3500,
+        price: 2850, // Average for backward compatibility
         quantity: 30,
         type: 'Electronics',
         min_stock: 5,
@@ -65,7 +70,7 @@ const MOCK_PRODUCTS = [
 ];
 
 // Mock suppliers data
-const MOCK_SUPPLIERS = [
+window.MOCK_SUPPLIERS = [
     {
         id: 's1',
         name: 'Tech Distributors Ltd.',
@@ -93,7 +98,7 @@ const MOCK_SUPPLIERS = [
 ];
 
 // Mock clients data
-const MOCK_CLIENTS = [
+window.MOCK_CLIENTS = [
     {
         id: 'c1',
         name: 'ABC Corporation',
@@ -121,7 +126,7 @@ const MOCK_CLIENTS = [
 ];
 
 // Mock stock history data
-const MOCK_STOCK_HISTORY = [
+window.MOCK_STOCK_HISTORY = [
     {
         id: 't1',
         product: 'p1',
@@ -134,6 +139,7 @@ const MOCK_STOCK_HISTORY = [
         supplier_name: 'Tech Distributors Ltd.',
         reference_number: 'PO-2025-001',
         discount: 2000,
+        wastage: 1500,
         uom: 'Unit'
     },
     {
@@ -148,6 +154,7 @@ const MOCK_STOCK_HISTORY = [
         supplier_name: 'Tech Distributors Ltd.',
         reference_number: 'PO-2025-002',
         discount: 5000,
+        wastage: 3000,
         uom: 'Unit'
     },
     {
@@ -162,6 +169,7 @@ const MOCK_STOCK_HISTORY = [
         supplier_name: 'Furniture World',
         reference_number: 'PO-2025-003',
         discount: 0,
+        wastage: 0,
         uom: 'Piece'
     },
     {
@@ -176,6 +184,7 @@ const MOCK_STOCK_HISTORY = [
         client_name: 'ABC Corporation',
         reference_number: 'SO-2025-001',
         discount: 1000,
+        wastage: 500,
         uom: 'Unit'
     },
     {
@@ -190,6 +199,7 @@ const MOCK_STOCK_HISTORY = [
         client_name: 'XYZ Enterprises',
         reference_number: 'SO-2025-002',
         discount: 2000,
+        wastage: 1200,
         uom: 'Unit'
     },
     {
@@ -204,6 +214,7 @@ const MOCK_STOCK_HISTORY = [
         supplier_name: 'Global Imports Inc.',
         reference_number: 'PO-2025-004',
         discount: 500,
+        wastage: 250,
         uom: 'kg'
     },
     {
@@ -218,6 +229,7 @@ const MOCK_STOCK_HISTORY = [
         client_name: 'Local Retail Shop',
         reference_number: 'SO-2025-003',
         discount: 200,
+        wastage: 75,
         uom: 'kg'
     },
     {
@@ -232,6 +244,7 @@ const MOCK_STOCK_HISTORY = [
         supplier_name: 'Tech Distributors Ltd.',
         reference_number: 'PO-2025-005',
         discount: 1500,
+        wastage: 800,
         uom: 'Unit'
     },
     {
@@ -246,6 +259,7 @@ const MOCK_STOCK_HISTORY = [
         client_name: 'ABC Corporation',
         reference_number: 'SO-2025-004',
         discount: 300,
+        wastage: 150,
         uom: 'Unit'
     },
     {
@@ -260,29 +274,67 @@ const MOCK_STOCK_HISTORY = [
         client_name: 'XYZ Enterprises',
         reference_number: 'SO-2025-005',
         discount: 500,
+        wastage: 0,
         uom: 'Piece'
     }
 ];
 
 // Mock inventory stats
-const MOCK_INVENTORY_STATS = {
-    total_products: MOCK_PRODUCTS.length,
-    total_value: MOCK_PRODUCTS.reduce((sum, product) => sum + (product.price * product.quantity), 0),
-    low_stock_count: MOCK_PRODUCTS.filter(product => product.quantity <= product.min_stock).length
+window.MOCK_INVENTORY_STATS = {
+    total_products: window.MOCK_PRODUCTS.length,
+    total_value: window.MOCK_PRODUCTS.reduce((sum, product) => sum + ((product.buying_price || product.price) * product.quantity), 0),
+    low_stock_count: window.MOCK_PRODUCTS.filter(product => product.quantity <= product.min_stock).length
 };
 
-// Override API functions with mock data when API is not available
+// Override setupMockData function
 function setupMockData() {
     console.log('Using mock data instead of API');
     
+    // Store original functions if they exist
+    const originalGetProducts = window.getProducts;
+    
     // Override getProducts
     window.getProducts = async function() {
-        return [...MOCK_PRODUCTS];
+        // Try to use the original function first if it exists
+        if (originalGetProducts) {
+            try {
+                const apiProducts = await originalGetProducts();
+                console.log(`API returned ${apiProducts.length} products`);
+                
+                // If API returned products, use them
+                if (apiProducts && apiProducts.length > 0) {
+                    return apiProducts;
+                }
+                
+                // Otherwise fall back to mock data
+                console.log('API returned no products, using mock data');
+            } catch (error) {
+                console.error('Error fetching products from API:', error);
+            }
+        }
+        
+        // Return mock products
+        console.log(`Returning ${window.MOCK_PRODUCTS.length} mock products`);
+        return [...window.MOCK_PRODUCTS];
     };
     
     // Override getProductById
+    const originalGetProductById = window.getProductById;
     window.getProductById = async function(id) {
-        const product = MOCK_PRODUCTS.find(p => p.id === id);
+        // Try to use the original function first if it exists
+        if (originalGetProductById) {
+            try {
+                const product = await originalGetProductById(id);
+                if (product) {
+                    return product;
+                }
+            } catch (error) {
+                console.error('Error fetching product by ID from API:', error);
+            }
+        }
+        
+        // Fall back to mock data
+        const product = window.MOCK_PRODUCTS.find(p => p.id === id);
         if (!product) {
             throw new Error('Product not found');
         }
@@ -290,46 +342,176 @@ function setupMockData() {
     };
     
     // Override getStockHistory
+    const originalGetStockHistory = window.getStockHistory;
     window.getStockHistory = async function() {
-        return [...MOCK_STOCK_HISTORY];
+        // Try to use the original function first if it exists
+        if (originalGetStockHistory) {
+            try {
+                const history = await originalGetStockHistory();
+                if (history && history.length > 0) {
+                    return history;
+                }
+            } catch (error) {
+                console.error('Error fetching stock history from API:', error);
+            }
+        }
+        
+        // Fall back to mock data
+        return [...window.MOCK_STOCK_HISTORY];
     };
     
     // Override getInventoryStats
+    const originalGetInventoryStats = window.getInventoryStats;
     window.getInventoryStats = async function() {
-        return {...MOCK_INVENTORY_STATS};
+        // Try to use the original function first if it exists
+        if (originalGetInventoryStats) {
+            try {
+                const stats = await originalGetInventoryStats();
+                if (stats) {
+                    return stats;
+                }
+            } catch (error) {
+                console.error('Error fetching inventory stats from API:', error);
+            }
+        }
+        
+        // Fall back to mock data
+        return {...window.MOCK_INVENTORY_STATS};
     };
     
     // Override getSuppliers
+    const originalGetSuppliers = window.getSuppliers;
     window.getSuppliers = async function() {
-        return [...MOCK_SUPPLIERS];
+        // Try to use the original function first if it exists
+        if (originalGetSuppliers) {
+            try {
+                const suppliers = await originalGetSuppliers();
+                if (suppliers && suppliers.length > 0) {
+                    return suppliers;
+                }
+            } catch (error) {
+                console.error('Error fetching suppliers from API:', error);
+            }
+        }
+        
+        // Fall back to mock data
+        return [...window.MOCK_SUPPLIERS];
     };
     
     // Override getClients
+    const originalGetClients = window.getClients;
     window.getClients = async function() {
-        return [...MOCK_CLIENTS];
+        // Try to use the original function first if it exists
+        if (originalGetClients) {
+            try {
+                const clients = await originalGetClients();
+                if (clients && clients.length > 0) {
+                    return clients;
+                }
+            } catch (error) {
+                console.error('Error fetching clients from API:', error);
+            }
+        }
+        
+        // Fall back to mock data
+        return [...window.MOCK_CLIENTS];
+    };
+    
+    // Override deleteProduct
+    const originalDeleteProduct = window.deleteProduct;
+    window.deleteProduct = async function(id) {
+        // Try to use the original function first if it exists
+        if (originalDeleteProduct) {
+            try {
+                await originalDeleteProduct(id);
+                return { success: true };
+            } catch (error) {
+                console.error('Error deleting product from API:', error);
+            }
+        }
+        
+        // Fall back to mock data deletion
+        console.log(`Mock deleting product with ID: ${id}`);
+        const index = window.MOCK_PRODUCTS.findIndex(p => p.id === id || p.id === String(id));
+        if (index === -1) {
+            throw new Error('Product not found');
+        }
+        
+        // Remove the product from mock data
+        window.MOCK_PRODUCTS.splice(index, 1);
+        return { success: true };
     };
 }
 
 // Check if API is available, otherwise use mock data
 document.addEventListener('DOMContentLoaded', function() {
+    // Always set up mock data initially
+    setupMockData();
+    
     // Check if API_CONFIG exists and is accessible
     if (typeof API_CONFIG === 'undefined' || !API_CONFIG.BASE_URL) {
-        setupMockData();
-    } else {
-        // Test API connection
-        fetch(API_CONFIG.BASE_URL + '/ping')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('API not available');
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('API is available:', data);
-            })
-            .catch(error => {
-                console.warn('API not available, using mock data:', error);
-                setupMockData();
-            });
+        console.log('API_CONFIG not found, using mock data only');
+        return;
     }
+    
+    console.log('Checking API availability...');
+    
+    // Build the full URL for the API check
+    const apiUrl = window.location.origin + API_CONFIG.BASE_URL + '/products/stats/';
+    console.log('Testing API at:', apiUrl);
+    
+    // Test API connection
+    fetch(apiUrl)
+        .then(response => {
+            if (!response.ok) {
+                console.error(`API responded with status ${response.status}: ${response.statusText}`);
+                throw new Error('API not available');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('API stats endpoint is available:', data);
+            
+            // Check if products API returns data
+            console.log('Checking products endpoint...');
+            return fetch(window.location.origin + API_CONFIG.BASE_URL + '/products/');
+        })
+        .then(response => {
+            if (!response.ok) {
+                console.error(`Products API responded with status ${response.status}: ${response.statusText}`);
+                throw new Error('Products API not available');
+            }
+            return response.json();
+        })
+        .then(products => {
+            console.log(`Received ${products.length} products from API`);
+            if (products.length === 0) {
+                console.warn('API returned empty products array, using mock data');
+            } else {
+                console.log('Using real API data');
+                
+                // Check stock history endpoint
+                console.log('Checking stock history endpoint...');
+                return fetch(window.location.origin + API_CONFIG.BASE_URL + '/stock-history/')
+                    .then(response => {
+                        if (!response.ok) {
+                            console.error(`Stock history API responded with status ${response.status}: ${response.statusText}`);
+                            throw new Error('Stock history API not available');
+                        }
+                        return response.json();
+                    })
+                    .then(history => {
+                        console.log(`Received ${history.length} stock history entries from API`);
+                        if (history.length === 0) {
+                            console.warn('API returned empty stock history, may use mock data for transactions');
+                        }
+                    })
+                    .catch(error => {
+                        console.warn('Error checking stock history API:', error);
+                    });
+            }
+        })
+        .catch(error => {
+            console.warn('API not available or returned no data, using mock data:', error);
+        });
 }); 

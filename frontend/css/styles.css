@@ -1,9 +1,22 @@
-/* styles.css - Custom styles for Golden Niche IMS */
+/* styles.css - Custom styles for QBITX IMS Transform Suppliers */
 
 /* Global Styles */
 body {
     font-family: 'Roboto', sans-serif;
     background-color: #f8f9fa;
+}
+
+/* Profit Margin Styles */
+.text-danger {
+    font-weight: 500;
+}
+
+.text-warning {
+    font-weight: 500;
+}
+
+.text-success {
+    font-weight: 500;
 }
 
 /* Sidebar Styles */
@@ -201,4 +214,234 @@ body {
         margin-left: 0 !important;
         width: 100% !important;
     }
+}
+
+/* Dashboard Specific Styles */
+.dashboard-card {
+    transition: all 0.3s ease;
+    border: none;
+    overflow: hidden;
+    position: relative;
+    border-radius: 12px;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+.dashboard-card .card-body {
+    position: relative;
+    z-index: 1;
+}
+
+.dashboard-card h4.card-title {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: white !important;
+}
+
+.dashboard-card .display-4 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-card .card-text {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+/* Card background gradients */
+.bg-primary.dashboard-card {
+    background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+}
+
+.bg-success.dashboard-card {
+    background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+}
+
+.bg-danger.dashboard-card {
+    background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
+}
+
+.bg-secondary.dashboard-card {
+    background: linear-gradient(135deg, #6f42c1 0%, #4e2b89 100%);
+}
+
+/* Card decorative elements */
+.dashboard-card::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: rgba(255, 255, 255, 0.1);
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    z-index: 0;
+}
+
+.dashboard-card::after {
+    content: '';
+    position: absolute;
+    bottom: -20px;
+    left: -20px;
+    background: rgba(255, 255, 255, 0.05);
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    z-index: 0;
+}
+
+/* Chart container styles */
+.chart-container {
+    position: relative;
+    height: 350px;
+    width: 100%;
+    padding: 10px;
+}
+
+/* Make category pie chart container taller */
+.card:has(#categoryPieChart) .chart-container {
+    height: 400px;
+}
+
+.card .card-body {
+    padding: 1.5rem;
+}
+
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.card .card-title {
+    font-weight: 600;
+    color: #4e73df;
+    margin-bottom: 1.25rem;
+    font-size: 1rem;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 0.75rem;
+}
+
+/* Top products table */
+.top-products-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.top-products-table th {
+    font-weight: 600;
+    font-size: 0.85rem;
+    background-color: #f8f9fa;
+    color: #4e73df;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.75rem;
+    border-bottom: 2px solid #e3e6f0;
+}
+
+.top-products-table td {
+    font-size: 0.85rem;
+    vertical-align: middle;
+    padding: 0.75rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.top-products-table tr:hover {
+    background-color: #f8f9fc;
+}
+
+/* Search and entries controls */
+.table-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0.5rem 0;
+}
+
+.table-controls .form-select, 
+.table-controls .form-control {
+    max-width: 150px;
+    border-radius: 20px;
+    border: 1px solid #e3e6f0;
+    box-shadow: none;
+    font-size: 0.85rem;
+}
+
+.table-controls .form-control:focus,
+.table-controls .form-select:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+/* Current date display */
+.current-date {
+    background-color: #f8f9fa;
+    border-left: 4px solid #4e73df;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1.5rem;
+    border-radius: 0 8px 8px 0;
+    font-weight: 500;
+    color: #5a5c69;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.current-date i {
+    color: #4e73df;
+}
+
+/* Permission lock icons */
+.permission-lock-icon {
+    display: inline-block;
+    margin-left: 5px;
+    color: #dc3545;
+}
+
+button:not(.disabled) .permission-lock-icon,
+a:not(.disabled) .permission-lock-icon {
+    display: none;
+}
+
+button.disabled,
+a.disabled {
+    opacity: 0.6;
+    cursor: not-allowed !important;
+    pointer-events: none;
+}
+
+.dropdown-item.disabled {
+    color: #6c757d;
+    background-color: transparent;
+    cursor: not-allowed;
+}
+
+/* Tooltips for disabled elements */
+button.disabled[title]:hover::after,
+a.disabled[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    margin-bottom: 5px;
 } 

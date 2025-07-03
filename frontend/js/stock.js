@@ -1,4 +1,4 @@
-// stock.js - Stock management functionality for Golden Niche IMS
+// stock.js - Stock management functionality for QBITX IMS Transform Suppliers
 
 document.addEventListener('DOMContentLoaded', async function() {
     // Check authentication
@@ -147,6 +147,8 @@ async function loadStockHistory(limit = 10) {
                 // Calculate financial values
                 const unitPrice = transaction.unit_price || product.price || 0;
                 const discount = transaction.discount || 0;
+                // Use wastage from backend, fallback to 0
+                const wastage = transaction.wastage || 0;
                 const totalPrice = transaction.quantity * unitPrice;
                 const payableAmount = totalPrice - discount;
                 const uom = product.unit_of_measure || 'Unit';
@@ -155,6 +157,7 @@ async function loadStockHistory(limit = 10) {
                 console.log(`Transaction ${transaction.id} values:`, {
                     unitPrice,
                     discount,
+                    wastage,
                     totalPrice,
                     payableAmount,
                     uom,
@@ -169,6 +172,7 @@ async function loadStockHistory(limit = 10) {
                     <td>${uom}</td>
                     <td>${formatCurrency(unitPrice)}</td>
                     <td>${formatCurrency(discount)}</td>
+                    <td>${wastage > 0 ? formatCurrency(wastage) : '-'}</td>
                     <td>${formatCurrency(totalPrice)}</td>
                     <td>${formatCurrency(payableAmount)}</td>
                     <td>${transaction.reference_number || '-'}</td>
@@ -191,6 +195,7 @@ async function loadStockHistory(limit = 10) {
                     <td>${transaction.product_name}</td>
                     <td><span class="${transactionClass}">${transactionLabel}</span></td>
                     <td>${transaction.quantity}</td>
+                    <td>-</td>
                     <td>-</td>
                     <td>-</td>
                     <td>-</td>
@@ -250,7 +255,7 @@ function setupEventListeners() {
     // Transaction type change
     document.querySelectorAll('input[name="stockType"]').forEach(radio => {
         radio.addEventListener('change', function() {
-            // Show/hide supplier and client forms based on transaction type
+            // Show appropriate supplier/client fields based on transaction type
             if (this.value === 'IN') {
                 document.getElementById('supplierInfo').style.display = 'block';
                 document.getElementById('clientInfo').style.display = 'none';
@@ -258,18 +263,66 @@ function setupEventListeners() {
                 document.getElementById('supplierInfo').style.display = 'none';
                 document.getElementById('clientInfo').style.display = 'block';
             }
+            
+            // Update unit price based on transaction type if "Use Default Price" is checked
+            const useDefaultPrice = document.getElementById('useDefaultPrice').checked;
+            if (useDefaultPrice) {
+                const unitPriceInput = document.getElementById('unitPrice');
+                const transactionType = this.value;
+                
+                // Set price based on transaction type using stored data attributes
+                if (transactionType === 'IN' && unitPriceInput.dataset.buyingPrice) {
+                    unitPriceInput.value = unitPriceInput.dataset.buyingPrice;
+                } else if (unitPriceInput.dataset.sellingPrice) {
+                    unitPriceInput.value = unitPriceInput.dataset.sellingPrice;
+                }
+                
+                // Ensure the unit price input remains read-only
+                unitPriceInput.readOnly = true;
+                
+                // Update transaction summary
+                updateTransactionSummary();
+            }
+            
+            // Reload product details to update other information
+            const selectedProductId = document.getElementById('product').value;
+            if (selectedProductId) {
+                loadProductDetails(selectedProductId);
+            }
         });
     });
     
-    // Pre-fill unit price when product is selected
-    document.getElementById('product').addEventListener('change', function() {
-        const productId = this.value;
-        if (productId) {
-            getProductById(productId).then(product => {
-                document.getElementById('unitPrice').value = product.price;
+    // Use Default Price checkbox change
+    document.getElementById('useDefaultPrice').addEventListener('change', function() {
+        const unitPriceInput = document.getElementById('unitPrice');
+        const selectedProductId = document.getElementById('product').value;
+        
+        if (selectedProductId) {
+            if (this.checked) {
+                // Set price based on transaction type using stored data attributes
+                const transactionType = document.querySelector('input[name="stockType"]:checked').value;
+                
+                if (transactionType === 'IN' && unitPriceInput.dataset.buyingPrice) {
+                    unitPriceInput.value = unitPriceInput.dataset.buyingPrice;
+                } else if (unitPriceInput.dataset.sellingPrice) {
+                    unitPriceInput.value = unitPriceInput.dataset.sellingPrice;
+                }
+                
+                // Make the unit price input read-only when using default price
+                unitPriceInput.readOnly = true;
+                
                 // Update transaction summary
                 updateTransactionSummary();
-            });
+            } else {
+                // Allow user to enter custom price by making the field editable
+                unitPriceInput.readOnly = false;
+            }
+        } else {
+            // No product selected, nothing to do
+            if (this.checked) {
+                showNotification('Please select a product first', 'warning');
+                this.checked = false;
+            }
         }
     });
     
@@ -277,6 +330,7 @@ function setupEventListeners() {
     document.getElementById('quantity').addEventListener('input', updateTransactionSummary);
     document.getElementById('unitPrice').addEventListener('input', updateTransactionSummary);
     document.getElementById('discount').addEventListener('input', updateTransactionSummary);
+    document.getElementById('wastage').addEventListener('input', updateTransactionSummary);
     
     // Supplier select change
     const supplierSelect = document.getElementById('supplierSelect');
@@ -327,6 +381,8 @@ function setupEventListeners() {
                           parseFloat(document.getElementById('unitPrice').value) : null;
         const discount = document.getElementById('discount').value ?
                          parseFloat(document.getElementById('discount').value) : 0;
+        const wastage = document.getElementById('wastage').value ?
+                         parseFloat(document.getElementById('wastage').value) : 0;
         
         // Get supplier or client data based on transaction type
         let supplier = null;
@@ -366,6 +422,7 @@ function setupEventListeners() {
                 reference_number: referenceNumber,
                 unit_price: unitPrice,
                 discount: discount,
+                wastage: wastage,
                 supplier: supplier,
                 supplier_contact: supplierContact,
                 client: client,
@@ -373,6 +430,10 @@ function setupEventListeners() {
                 supplier_id: supplierId,
                 client_id: clientId
             };
+            // Mark as wastage if wastage value is greater than 0
+            if (wastage > 0) {
+                transactionData.is_wastage = true;
+            }
             
             // Update stock
             const response = await updateStockWithDetails(transactionData);
@@ -397,6 +458,7 @@ function setupEventListeners() {
             document.getElementById('notes').value = '';
             document.getElementById('unitPrice').value = '';
             document.getElementById('discount').value = '0';
+            document.getElementById('wastage').value = '0';
             document.getElementById('referenceNumber').value = '';
             document.getElementById('supplier').value = '';
             document.getElementById('supplierContact').value = '';
@@ -516,43 +578,114 @@ async function findProductByBarcode(barcode, modal) {
     }
 }
 
-// Load product details
+// Load product details when a product is selected
 async function loadProductDetails(productId) {
+    if (!productId) {
+        // Hide product details and show placeholder
+        document.getElementById('productDetails').classList.add('d-none');
+        document.getElementById('noProductSelected').classList.remove('d-none');
+        return;
+    }
+    
     try {
         const product = await getProductById(productId);
         
-        // Update product details
+        // Show product details
+        document.getElementById('productDetails').classList.remove('d-none');
+        document.getElementById('noProductSelected').classList.add('d-none');
+        
+        // Fill in product details
         document.getElementById('productName').textContent = product.name;
         document.getElementById('productSKU').textContent = product.sku;
         document.getElementById('productType').textContent = product.type;
-        document.getElementById('productStock').textContent = product.quantity;
-        document.getElementById('productPrice').textContent = formatCurrency(product.price);
         document.getElementById('productLocation').textContent = product.location || 'Not specified';
+        document.getElementById('productStock').textContent = `${product.quantity} ${product.unit_of_measure || 'units'}`;
         document.getElementById('productBatch').textContent = product.batch_number || 'Not specified';
-        
-        // Set default unit price
-        document.getElementById('unitPrice').value = product.price;
-        
-        // Format expiry date if it exists
-        let expiryDisplay = 'Not specified';
-        if (product.expiry_date) {
-            const expiryDate = new Date(product.expiry_date);
-            expiryDisplay = expiryDate.toLocaleDateString();
-            
-            // Highlight if expired
-            if (expiryDate < new Date()) {
-                expiryDisplay = `<span class="text-danger">${expiryDisplay} (EXPIRED)</span>`;
-            }
-        }
-        document.getElementById('productExpiry').innerHTML = expiryDisplay;
         document.getElementById('productBarcode').textContent = product.barcode || 'Not specified';
         
-        // Show product details, hide placeholder
-        document.getElementById('productDetails').classList.remove('d-none');
-        document.getElementById('noProductSelected').classList.add('d-none');
+        // Set expiry date
+        if (product.expiry_date) {
+            const expiryDate = new Date(product.expiry_date);
+            document.getElementById('productExpiry').textContent = expiryDate.toLocaleDateString();
+        } else {
+            document.getElementById('productExpiry').textContent = 'Not specified';
+        }
+        
+        // Get buying and selling prices
+        const buyingPrice = product.buying_price || product.price || 0;
+        const sellingPrice = product.selling_price || product.price || 0;
+        
+        // Calculate profit margin
+        let profitMargin = 0;
+        let profitPercentage = 0;
+        
+        if (buyingPrice > 0) {
+            profitMargin = sellingPrice - buyingPrice;
+            profitPercentage = (profitMargin / buyingPrice) * 100;
+        }
+        
+        // Display prices and profit margin
+        document.getElementById('productBuyingPrice').textContent = formatCurrency(buyingPrice);
+        document.getElementById('productSellingPrice').textContent = formatCurrency(sellingPrice);
+        document.getElementById('productProfitMargin').textContent = `${formatCurrency(profitMargin)} (${profitPercentage.toFixed(2)}%)`;
+        
+        // Set text color for profit margin based on value
+        const profitMarginElement = document.getElementById('productProfitMargin');
+        if (profitMargin > 0) {
+            profitMarginElement.classList.add('text-success');
+            profitMarginElement.classList.remove('text-danger', 'text-warning');
+        } else if (profitMargin < 0) {
+            profitMarginElement.classList.add('text-danger');
+            profitMarginElement.classList.remove('text-success', 'text-warning');
+        } else {
+            profitMarginElement.classList.add('text-warning');
+            profitMarginElement.classList.remove('text-success', 'text-danger');
+        }
+        
+        // Store default prices as data attributes on the unit price input
+        const unitPriceInput = document.getElementById('unitPrice');
+        unitPriceInput.dataset.buyingPrice = buyingPrice;
+        unitPriceInput.dataset.sellingPrice = sellingPrice;
+        
+        // Check if the "Use Default Price" checkbox is checked
+        const useDefaultPrice = document.getElementById('useDefaultPrice').checked;
+        
+        if (useDefaultPrice) {
+            // Determine which price to show in the unit price field based on transaction type
+            const transactionType = document.querySelector('input[name="stockType"]:checked').value;
+            
+            // Set unit price based on transaction type
+            if (transactionType === 'IN') {
+                // For stock in (purchase), use buying price
+                unitPriceInput.value = buyingPrice;
+            } else {
+                // For stock out (sale), use selling price
+                unitPriceInput.value = sellingPrice;
+            }
+            
+            // Make the unit price input read-only when using default price
+            unitPriceInput.readOnly = true;
+        } else {
+            // If not using default price, ensure the field is editable
+            unitPriceInput.readOnly = false;
+        }
+        
+        // Update transaction summary
+        updateTransactionSummary();
+        
+        return product;
     } catch (error) {
         console.error('Error loading product details:', error);
         showNotification('Error loading product details', 'danger');
+        
+        // Hide product details and show placeholder with error
+        document.getElementById('productDetails').classList.add('d-none');
+        document.getElementById('noProductSelected').classList.remove('d-none');
+        document.getElementById('noProductSelected').innerHTML = `
+            <p class="text-danger">Error loading product details. Please try again.</p>
+        `;
+        
+        return null;
     }
 }
 
@@ -584,6 +717,7 @@ function updateTransactionSummary() {
     const quantity = parseFloat(document.getElementById('quantity').value) || 0;
     const unitPrice = parseFloat(document.getElementById('unitPrice').value) || 0;
     const discount = parseFloat(document.getElementById('discount').value) || 0;
+    const wastage = parseFloat(document.getElementById('wastage').value) || 0;
     
     // Calculate values
     const totalPrice = quantity * unitPrice;
@@ -592,5 +726,6 @@ function updateTransactionSummary() {
     // Update display
     document.getElementById('totalPriceDisplay').textContent = formatCurrency(totalPrice);
     document.getElementById('discountDisplay').textContent = formatCurrency(discount);
+    document.getElementById('wastageLossDisplay').textContent = formatCurrency(wastage);
     document.getElementById('payableAmountDisplay').textContent = formatCurrency(payableAmount);
 }
