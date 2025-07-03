@@ -75,3 +75,4 @@ django_ims/
 
 ## License
 MIT (or your chosen license)
+# qbitx-ims
